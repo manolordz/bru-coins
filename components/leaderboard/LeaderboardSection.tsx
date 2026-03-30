@@ -25,38 +25,22 @@ interface Transaction {
   baristas?: { name: string; avatar_url: string | null }
 }
 
+interface CoinRule {
+  id: string
+  description: string
+  amount: number
+}
+
 interface LeaderboardSectionProps {
   initialBaristas: Barista[]
   initialTransactions: Transaction[]
+  earnRules?: CoinRule[]
+  deductRules?: CoinRule[]
 }
 
 const RANK_LABELS = ['🥇', '🥈', '🥉']
 
-const EARN_RULES = [
-  { action: 'Tarjeta de sellos', amount: '+₿1', per: 'por cliente' },
-  { action: 'Corte de caja perfecto', amount: '+₿2' },
-  { action: 'Shoutout / mención', amount: '+₿2' },
-  { action: 'Proponer idea útil', amount: '+₿2' },
-  { action: 'Grano de plata', amount: '+₿2' },
-  { action: 'Grano de oro', amount: '+₿5' },
-  { action: '0 faltas en el mes', amount: '+₿5' },
-  { action: 'Review positivo', amount: '+₿5' },
-  { action: 'Puntualidad impecable', amount: '+₿5', per: 'tolerancia 5 min' },
-  { action: 'Cubrir turno emergencia', amount: '+₿10' },
-]
-
-const DEDUCT_RULES = [
-  { action: 'No usar mandil', amount: '-₿1' },
-  { action: 'No marcar bebidas', amount: '-₿1' },
-  { action: 'Llegada tarde', amount: '-₿2', per: 'cada 5 min' },
-  { action: 'No check-in/out', amount: '-₿2' },
-  { action: 'Olvidar órdenes', amount: '-₿5' },
-  { action: 'No enviar checklist', amount: '-₿5' },
-  { action: 'Falta sin avisar', amount: '-₿10' },
-  { action: 'Otras sanciones', amount: '-₿?' },
-]
-
-export function LeaderboardSection({ initialBaristas, initialTransactions }: LeaderboardSectionProps) {
+export function LeaderboardSection({ initialBaristas, initialTransactions, earnRules = [], deductRules = [] }: LeaderboardSectionProps) {
   const [baristas, setBaristas] = useState(initialBaristas)
   const [transactions, setTransactions] = useState(initialTransactions)
   const [showRules, setShowRules] = useState(false)
@@ -166,24 +150,32 @@ export function LeaderboardSection({ initialBaristas, initialTransactions }: Lea
         {/* Collapsible: Rules */}
         {showRules && (
           <div className="mx-3 mb-2 bg-white/70 rounded-xl px-3 py-2 text-xs max-h-[30vh] overflow-y-auto border border-bru-light-gray space-y-2">
-            <div>
-              <p className="font-semibold text-green-700 mb-1">✅ Ganar ₿</p>
-              {EARN_RULES.map((r, i) => (
-                <div key={i} className="flex justify-between py-0.5 border-b border-bru-light-gray/40 last:border-0">
-                  <span className="text-bru-black">{r.action}</span>
-                  <span className="text-green-600 font-semibold ml-3 flex-shrink-0">{r.amount}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <p className="font-semibold text-red-700 mb-1">❌ Perder ₿</p>
-              {DEDUCT_RULES.map((r, i) => (
-                <div key={i} className="flex justify-between py-0.5 border-b border-bru-light-gray/40 last:border-0">
-                  <span className="text-bru-black">{r.action}</span>
-                  <span className="text-red-600 font-semibold ml-3 flex-shrink-0">{r.amount}</span>
-                </div>
-              ))}
-            </div>
+            {earnRules.length > 0 && (
+              <div>
+                <p className="font-semibold text-green-700 mb-1">✅ Ganar ₿</p>
+                {earnRules.map((r) => (
+                  <div key={r.id} className="flex justify-between py-0.5 border-b border-bru-light-gray/40 last:border-0">
+                    <span className="text-bru-black">{r.description}</span>
+                    <span className="text-green-600 font-semibold ml-3 flex-shrink-0">
+                      {r.amount > 0 ? `+₿${r.amount}` : '+₿?'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {deductRules.length > 0 && (
+              <div>
+                <p className="font-semibold text-red-700 mb-1">❌ Perder ₿</p>
+                {deductRules.map((r) => (
+                  <div key={r.id} className="flex justify-between py-0.5 border-b border-bru-light-gray/40 last:border-0">
+                    <span className="text-bru-black">{r.description}</span>
+                    <span className="text-red-600 font-semibold ml-3 flex-shrink-0">
+                      {r.amount > 0 ? `−₿${r.amount}` : '−₿?'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -274,24 +266,32 @@ export function LeaderboardSection({ initialBaristas, initialTransactions }: Lea
           </button>
           {showRules && (
             <div className="px-3 pb-3 text-xs max-h-56 overflow-y-auto space-y-3">
-              <div>
-                <p className="font-semibold text-green-700 mb-1.5">✅ Ganar</p>
-                {EARN_RULES.map((r, i) => (
-                  <div key={i} className="flex justify-between py-1 border-b border-bru-light-gray/50 last:border-0">
-                    <span className="text-bru-black leading-tight">{r.action}</span>
-                    <span className="text-green-600 font-bold ml-2 flex-shrink-0">{r.amount}</span>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="font-semibold text-red-700 mb-1.5">❌ Perder</p>
-                {DEDUCT_RULES.map((r, i) => (
-                  <div key={i} className="flex justify-between py-1 border-b border-bru-light-gray/50 last:border-0">
-                    <span className="text-bru-black leading-tight">{r.action}</span>
-                    <span className="text-red-600 font-bold ml-2 flex-shrink-0">{r.amount}</span>
-                  </div>
-                ))}
-              </div>
+              {earnRules.length > 0 && (
+                <div>
+                  <p className="font-semibold text-green-700 mb-1.5">✅ Ganar</p>
+                  {earnRules.map((r) => (
+                    <div key={r.id} className="flex justify-between py-1 border-b border-bru-light-gray/50 last:border-0">
+                      <span className="text-bru-black leading-tight">{r.description}</span>
+                      <span className="text-green-600 font-bold ml-2 flex-shrink-0">
+                        {r.amount > 0 ? `+₿${r.amount}` : '+₿?'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {deductRules.length > 0 && (
+                <div>
+                  <p className="font-semibold text-red-700 mb-1.5">❌ Perder</p>
+                  {deductRules.map((r) => (
+                    <div key={r.id} className="flex justify-between py-1 border-b border-bru-light-gray/50 last:border-0">
+                      <span className="text-bru-black leading-tight">{r.description}</span>
+                      <span className="text-red-600 font-bold ml-2 flex-shrink-0">
+                        {r.amount > 0 ? `−₿${r.amount}` : '−₿?'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -7,7 +7,7 @@ export const revalidate = 60
 export default async function HomePage() {
   const supabase = await createClient()
 
-  const [{ data: baristas }, { data: rewards }, { data: transactions }] = await Promise.all([
+  const [{ data: baristas }, { data: rewards }, { data: transactions }, { data: coinRules }] = await Promise.all([
     supabase
       .from('baristas')
       .select('id, name, avatar_url, coin_balance, total_coins_earned, total_redeemed')
@@ -22,7 +22,15 @@ export default async function HomePage() {
       .select('id, barista_id, type, amount, reason, created_at, baristas(name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('coin_rules')
+      .select('id, type, description, amount')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
   ])
+
+  const earnRules = (coinRules || []).filter((r: { type: string }) => r.type === 'earn')
+  const deductRules = (coinRules || []).filter((r: { type: string }) => r.type === 'deduct')
 
   return (
     <main className="min-h-screen bg-bru-parchment flex flex-col">
@@ -53,6 +61,8 @@ export default async function HomePage() {
           <LeaderboardSection
             initialBaristas={baristas || []}
             initialTransactions={(transactions as any) || []}
+            earnRules={earnRules}
+            deductRules={deductRules}
           />
         </aside>
 
@@ -61,6 +71,7 @@ export default async function HomePage() {
           <MarketplaceSection
             rewards={rewards || []}
             baristas={baristas || []}
+            earnRules={earnRules}
           />
         </div>
 

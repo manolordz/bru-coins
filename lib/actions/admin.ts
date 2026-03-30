@@ -244,6 +244,119 @@ export async function uploadRewardImage(rewardId: string, file: File) {
   return { success: true, url: urlData.publicUrl }
 }
 
+// ─── Coin Rules ───────────────────────────────────────────────────────────────
+
+export async function createCoinRule(data: {
+  type: 'earn' | 'deduct'
+  description: string
+  amount: number
+  sort_order?: number
+}) {
+  if (!data.description?.trim()) return { error: 'La descripción es requerida.' }
+  if (data.amount < 0) return { error: 'El monto no puede ser negativo.' }
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('coin_rules').insert({
+    type: data.type,
+    description: data.description.trim(),
+    amount: data.amount,
+    sort_order: data.sort_order ?? 0,
+  })
+  if (error) return { error: 'Error al crear la regla.' }
+  revalidatePath('/admin/reglas')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function updateCoinRule(id: string, data: {
+  description?: string
+  amount?: number
+  sort_order?: number
+  is_active?: boolean
+}) {
+  const supabase = createServiceClient()
+  const updates: Record<string, unknown> = {}
+  if (data.description !== undefined) updates.description = data.description.trim()
+  if (data.amount !== undefined) updates.amount = data.amount
+  if (data.sort_order !== undefined) updates.sort_order = data.sort_order
+  if (data.is_active !== undefined) updates.is_active = data.is_active
+  const { error } = await supabase.from('coin_rules').update(updates).eq('id', id)
+  if (error) return { error: 'Error al actualizar la regla.' }
+  revalidatePath('/admin/reglas')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteCoinRule(id: string) {
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('coin_rules').delete().eq('id', id)
+  if (error) return { error: 'Error al eliminar la regla.' }
+  revalidatePath('/admin/reglas')
+  revalidatePath('/')
+  return { success: true }
+}
+
+// ─── Coin Requests ────────────────────────────────────────────────────────────
+
+interface RequestItem {
+  ruleId: string
+  description: string
+  amount: number
+  quantity: number
+  subtotal: number
+}
+
+export async function approveCoinRequest(requestId: string) {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  const supabase = createServiceClient()
+
+  const { data: request } = await supabase
+    .from('coin_requests')
+    .select('*')
+    .eq('id', requestId)
+    .single()
+
+  if (!request || request.status !== 'pending') {
+    return { error: 'Solicitud no encontrada o ya procesada.' }
+  }
+
+  const items = request.items as RequestItem[]
+  const reason = `Solicitud aprobada: ${items
+    .map(i => `${i.description}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`)
+    .join(', ')}`
+
+  const { error: coinsError } = await supabase.rpc('add_coins', {
+    p_barista_id: request.barista_id,
+    p_amount: request.total_amount,
+    p_reason: reason,
+  })
+  if (coinsError) return { error: 'Error al agregar coins.' }
+
+  await supabase
+    .from('coin_requests')
+    .update({ status: 'approved', reviewed_by: user?.id ?? null, reviewed_at: new Date().toISOString() })
+    .eq('id', requestId)
+
+  revalidatePath('/admin/solicitudes')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function rejectCoinRequest(requestId: string) {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  const supabase = createServiceClient()
+
+  const { error } = await supabase
+    .from('coin_requests')
+    .update({ status: 'rejected', reviewed_by: user?.id ?? null, reviewed_at: new Date().toISOString() })
+    .eq('id', requestId)
+
+  if (error) return { error: 'Error al rechazar la solicitud.' }
+  revalidatePath('/admin/solicitudes')
+  return { success: true }
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings() {

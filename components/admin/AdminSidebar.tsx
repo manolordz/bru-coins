@@ -5,14 +5,27 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { adminSignOut } from '@/lib/actions/admin'
 
-const navItems = [
-  { href: '/admin/baristas', label: 'Baristas', icon: '👤' },
-  { href: '/admin/transacciones', label: 'Transacciones', icon: '📋' },
-  { href: '/admin/rewards', label: 'Rewards', icon: '🎁' },
-  { href: '/admin/configuracion', label: 'Configuración', icon: '⚙️' },
+interface NavItem {
+  href: string
+  label: string
+  icon: string
+  badge?: boolean
+}
+
+const navItems: NavItem[] = [
+  { href: '/admin/baristas',     label: 'Baristas',        icon: '👤' },
+  { href: '/admin/transacciones',label: 'Transacciones',   icon: '📋' },
+  { href: '/admin/rewards',      label: 'Rewards',         icon: '🎁' },
+  { href: '/admin/solicitudes',  label: 'Solicitudes',     icon: '📥', badge: true },
+  { href: '/admin/reglas',       label: 'Reglas de Coins', icon: '📏' },
+  { href: '/admin/configuracion',label: 'Configuración',   icon: '⚙️' },
 ]
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  pendingRequestsCount?: number
+}
+
+export function AdminSidebar({ pendingRequestsCount = 0 }: AdminSidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -24,21 +37,25 @@ export function AdminSidebar() {
           <span className="text-lg">☕</span>
           <span className="font-display font-semibold text-bru-black">BRÜ Admin</span>
         </div>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="w-9 h-9 rounded-lg bg-bru-light-gray flex items-center justify-center"
-          aria-label="Menú"
-        >
-          <span className="text-lg">{mobileOpen ? '✕' : '☰'}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {pendingRequestsCount > 0 && (
+            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+            </span>
+          )}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="w-9 h-9 rounded-lg bg-bru-light-gray flex items-center justify-center"
+            aria-label="Menú"
+          >
+            <span className="text-lg">{mobileOpen ? '✕' : '☰'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-20 bg-black/40"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 z-20 bg-black/40" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -64,6 +81,7 @@ export function AdminSidebar() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto pt-16 lg:pt-4">
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + '/')
+            const showBadge = item.badge && pendingRequestsCount > 0
             return (
               <Link
                 key={item.href}
@@ -77,14 +95,21 @@ export function AdminSidebar() {
                   }
                 `}
               >
-                <span className="text-base">{item.icon}</span>
-                {item.label}
+                <span className="text-base flex-shrink-0">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
+                {showBadge && (
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
+                    active ? 'bg-white text-bru-orange' : 'bg-red-500 text-white'
+                  }`}>
+                    {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                  </span>
+                )}
               </Link>
             )
           })}
         </nav>
 
-        {/* Footer links */}
+        {/* Footer */}
         <div className="p-4 border-t border-bru-light-gray space-y-1">
           <Link
             href="/"

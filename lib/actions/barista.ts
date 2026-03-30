@@ -51,6 +51,41 @@ export async function verifyBaristaPin(
   }
 }
 
+export interface CoinRequestItem {
+  ruleId: string
+  description: string
+  amount: number
+  quantity: number
+  subtotal: number
+}
+
+export type SubmitRequestResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function submitCoinRequest(
+  baristaId: string,
+  items: CoinRequestItem[],
+  totalAmount: number
+): Promise<SubmitRequestResult> {
+  if (!items.length) return { success: false, error: 'Selecciona al menos una razón.' }
+  if (totalAmount <= 0) return { success: false, error: 'El total debe ser mayor a 0.' }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('coin_requests').insert({
+    barista_id: baristaId,
+    items,
+    total_amount: totalAmount,
+    status: 'pending',
+  })
+
+  if (error) {
+    console.error('[coin_request] Error:', error)
+    return { success: false, error: 'Error al enviar la solicitud. Inténtalo de nuevo.' }
+  }
+  return { success: true }
+}
+
 export type RedeemResult =
   | { success: true; newBalance: number; rewardName: string }
   | { success: false; error: string }

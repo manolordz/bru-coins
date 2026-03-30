@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { RedemptionModal } from '@/components/redemption/RedemptionModal'
+import { CoinRequestModal } from '@/components/CoinRequestModal'
+import type { EarnRule } from '@/components/CoinRequestModal'
 
 interface Reward {
   id: string
@@ -25,6 +27,7 @@ interface Barista {
 interface MarketplaceSectionProps {
   rewards: Reward[]
   baristas: Barista[]
+  earnRules?: EarnRule[]
 }
 
 function getRewardEmoji(name: string): string {
@@ -41,8 +44,9 @@ function getRewardEmoji(name: string): string {
   return '⭐'
 }
 
-export function MarketplaceSection({ rewards, baristas }: MarketplaceSectionProps) {
+export function MarketplaceSection({ rewards, baristas, earnRules = [] }: MarketplaceSectionProps) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
 
   const available = rewards.filter((r) => r.is_available)
   const unavailable = rewards.filter((r) => !r.is_available)
@@ -117,15 +121,24 @@ export function MarketplaceSection({ rewards, baristas }: MarketplaceSectionProp
         </div>
       </section>
 
-      {/* Floating CTA */}
+      {/* Floating CTAs */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-bru-parchment via-bru-parchment/95 to-transparent pointer-events-none z-30">
-        <button
-          onClick={() => setModalOpen(true)}
-          className="pointer-events-auto w-full max-w-sm mx-auto flex items-center justify-center gap-2 bg-bru-orange text-white font-semibold text-lg py-4 px-8 rounded-2xl shadow-warm-lg hover:bg-bru-orange-dark active:scale-95 transition-all duration-150"
-        >
-          <span>🎁</span>
-          Canjear Reward
-        </button>
+        <div className="flex gap-2 w-full max-w-sm mx-auto pointer-events-auto">
+          <button
+            onClick={() => setRequestModalOpen(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-white text-bru-orange font-semibold text-base py-4 px-4 rounded-2xl shadow-card border-2 border-bru-orange hover:bg-orange-50 active:scale-95 transition-all duration-150"
+          >
+            <span>₿</span>
+            Solicitar
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex-[2] flex items-center justify-center gap-2 bg-bru-orange text-white font-semibold text-base py-4 px-6 rounded-2xl shadow-warm-lg hover:bg-bru-orange-dark active:scale-95 transition-all duration-150"
+          >
+            <span>🎁</span>
+            Canjear Reward
+          </button>
+        </div>
       </div>
 
       {/* Redemption modal */}
@@ -134,6 +147,14 @@ export function MarketplaceSection({ rewards, baristas }: MarketplaceSectionProp
         onClose={() => setModalOpen(false)}
         baristas={baristas}
         rewards={rewards}
+      />
+
+      {/* Coin request modal */}
+      <CoinRequestModal
+        isOpen={requestModalOpen}
+        onClose={() => setRequestModalOpen(false)}
+        baristas={baristas}
+        earnRules={earnRules}
       />
     </>
   )
