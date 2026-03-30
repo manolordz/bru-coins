@@ -34,8 +34,8 @@ interface RedemptionModalProps {
 const LOCKOUT_DURATION = 5 * 60 * 1000 // 5 minutes in ms
 const MAX_ATTEMPTS = 3
 
-function getLockoutState(baristaId: string) {
-  if (typeof window === 'undefined') return { locked: false, attemptsLeft: MAX_ATTEMPTS }
+function getLockoutState(baristaId: string): { locked: boolean; remaining: number; attemptsLeft: number } {
+  if (typeof window === 'undefined') return { locked: false, remaining: 0, attemptsLeft: MAX_ATTEMPTS }
   const lockKey = `pin_lock_${baristaId}`
   const attKey = `pin_att_${baristaId}`
   const lockUntil = parseInt(localStorage.getItem(lockKey) || '0')
@@ -50,10 +50,10 @@ function getLockoutState(baristaId: string) {
   if (lockUntil > 0 && lockUntil <= Date.now()) {
     localStorage.removeItem(lockKey)
     localStorage.removeItem(attKey)
-    return { locked: false, attemptsLeft: MAX_ATTEMPTS }
+    return { locked: false, remaining: 0, attemptsLeft: MAX_ATTEMPTS }
   }
 
-  return { locked: false, attemptsLeft: MAX_ATTEMPTS - attempts }
+  return { locked: false, remaining: 0, attemptsLeft: MAX_ATTEMPTS - attempts }
 }
 
 function recordFailedAttempt(baristaId: string) {
