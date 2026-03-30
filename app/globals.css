@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap');
+
+/* ─── CSS Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --color-parchment: #DFD9C7;
+  --color-black: #000000;
+  --color-orange: #D06500;
+  --color-orange-light: #E8832A;
+  --color-orange-dark: #A84F00;
+  --color-cream: #F5F0E8;
+  --color-warm-gray: #8C8070;
+  --color-light-gray: #E8E2D4;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-parchment);
+  color: var(--color-black);
+  font-family: var(--font-body);
+}
+
+/* ─── Typography ────────────────────────────────────────────────────────────── */
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+}
+
+/* ─── BRÜ Coin Symbol ────────────────────────────────────────────────────────── */
+.coin-symbol {
+  font-family: var(--font-display);
+  color: var(--color-orange);
+  font-weight: 600;
+}
+
+/* ─── Hide scrollbar utility ────────────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-light-gray);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-warm-gray);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-orange);
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-parchment {
+    background-color: var(--color-parchment);
+  }
+
+  .btn-orange {
+    @apply bg-bru-orange text-white font-medium px-6 py-3 rounded-xl
+           hover:bg-bru-orange-dark active:scale-95 transition-all duration-150
+           shadow-warm hover:shadow-warm-lg;
+  }
+
+  .btn-outline {
+    @apply border-2 border-bru-orange text-bru-orange font-medium px-6 py-3 rounded-xl
+           hover:bg-bru-orange hover:text-white active:scale-95 transition-all duration-150;
+  }
+
+  .card-warm {
+    @apply bg-white rounded-2xl shadow-card border border-bru-light-gray;
+  }
+
+  .input-warm {
+    @apply w-full border border-bru-light-gray rounded-xl px-4 py-3
+           bg-white text-bru-black placeholder-bru-warm-gray
+           focus:outline-none focus:border-bru-orange focus:ring-2
+           focus:ring-bru-orange/20 transition-colors;
+  }
+
+  /* PIN dots */
+  .pin-dot {
+    @apply w-4 h-4 rounded-full border-2 border-bru-orange/40 transition-all duration-200;
+  }
+
+  .pin-dot.filled {
+    @apply bg-bru-orange border-bru-orange scale-110;
+  }
+}
