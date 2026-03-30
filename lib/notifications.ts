@@ -22,10 +22,16 @@ export async function sendRedemptionEmail(data: RedemptionEmailData): Promise<vo
   const cfg: Record<string, string> = {}
   rows?.forEach(({ key, value }) => { if (value?.trim()) cfg[key] = value.trim() })
 
-  const adminEmails = (cfg.admin_notification_emails || process.env.ADMIN_NOTIFICATION_EMAILS || '')
-    .split(',').map(e => e.trim()).filter(Boolean)
+  // Support both ADMIN_NOTIFICATION_EMAILS (comma-separated list) and the
+  // simpler ADMIN_EMAIL single-address variant used in .env.local / Vercel.
+  const adminEmails = (
+    cfg.admin_notification_emails ||
+    process.env.ADMIN_NOTIFICATION_EMAILS ||
+    process.env.ADMIN_EMAIL ||
+    ''
+  ).split(',').map(e => e.trim()).filter(Boolean)
 
-  const resendKey = cfg.resend_api_key || process.env.RESEND_API_KEY || ''
+  const resendKey = (cfg.resend_api_key || process.env.RESEND_API_KEY || '').trim()
 
   if (!adminEmails.length) {
     console.warn('[notify] Sin correos de admin configurados — omitiendo notificación.')
@@ -49,9 +55,10 @@ export async function sendRedemptionEmail(data: RedemptionEmailData): Promise<vo
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      // Change the `from` address to a verified domain in your Resend account.
-      // During development you can use: onboarding@resend.dev (sends to your own email only)
-      from: 'BRÜ Coins <noreply@brucoins.app>',
+      // RESEND_FROM_EMAIL must be an address on a domain you have verified in Resend.
+      // Until you verify a custom domain, Resend's shared address works and sends
+      // to any email address in your Resend account's verified list.
+      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
       to: adminEmails,
       subject: `🎁 ${data.baristaName} canjeó ${data.rewardName} en BRÜ Coins`,
       html: buildEmailHtml(data, dateStr),

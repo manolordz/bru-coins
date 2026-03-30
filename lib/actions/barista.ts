@@ -106,22 +106,21 @@ export async function redeemReward(
 
   const newBalance: number = data
 
-  // Fire-and-forget: fetch the redemption record just created and send email
-  // We don't await the full email flow so the user gets an instant response
-  ;(async () => {
-    try {
-      const { data: redemption } = await supabase
-        .from('redemptions')
-        .select('id, redeemed_at')
-        .eq('barista_id', baristaId)
-        .eq('reward_id', rewardId)
-        .eq('notified', false)
-        .order('redeemed_at', { ascending: false })
-        .limit(1)
-        .single()
+  // Await the email before returning — do NOT fire-and-forget.
+  // Vercel serverless functions terminate the instant the Server Action
+  // returns a response; any unawaited async work is silently killed.
+  try {
+    const { data: redemption } = await supabase
+      .from('redemptions')
+      .select('id, redeemed_at')
+      .eq('barista_id', baristaId)
+      .eq('reward_id', rewardId)
+      .eq('notified', false)
+      .order('redeemed_at', { ascending: false })
+      .limit(1)
+      .single()
 
-      if (!redemption) return
-
+    if (redemption) {
       await sendRedemptionEmail({
         redemptionId: redemption.id,
         baristaName: barista.name,
@@ -130,11 +129,11 @@ export async function redeemReward(
         newBalance,
         redeemedAt: redemption.redeemed_at,
       })
-    } catch (notifyErr) {
-      // Non-fatal — the redemption already succeeded
-      console.error('[notify] Error enviando email de canje:', notifyErr)
     }
-  })()
+  } catch (notifyErr) {
+    // Non-fatal — the redemption already succeeded, email is best-effort
+    console.error('[notify] Error enviando email de canje:', notifyErr)
+  }
 
   return {
     success: true,
