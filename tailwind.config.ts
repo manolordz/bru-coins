@@ -21,10 +21,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['var(--font-playfair)', 'Georgia', 'serif'],
-        sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        // Slab serif for prices — neutral, highly legible, correct ₿ glyph
-        slab: ['var(--font-roboto-slab)', 'Rockwell', 'Georgia', 'serif'],
+        display: ['var(--font-nunito)', 'Nunito', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-dm-sans)', 'system-ui', '-apple-system', 'sans-serif'],
+        slab: ['var(--font-nunito)', 'Nunito', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
         'warm': '0 4px 24px rgba(208, 101, 0, 0.12)',

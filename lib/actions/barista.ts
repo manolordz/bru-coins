@@ -2,7 +2,7 @@
 
 import bcrypt from 'bcryptjs'
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendRedemptionEmail } from '@/lib/notifications'
+import { sendRedemptionEmail, sendCoinRequestEmail } from '@/lib/notifications'
 
 export type BaristaVerifyResult =
   | { success: true; barista: { id: string; name: string; avatar_url: string | null; coin_balance: number } }
@@ -72,6 +72,14 @@ export async function submitCoinRequest(
   if (totalAmount <= 0) return { success: false, error: 'El total debe ser mayor a 0.' }
 
   const supabase = createServiceClient()
+
+  // Fetch barista name for the notification email
+  const { data: barista } = await supabase
+    .from('baristas')
+    .select('name')
+    .eq('id', baristaId)
+    .single()
+
   const { error } = await supabase.from('coin_requests').insert({
     barista_id: baristaId,
     items,
@@ -83,6 +91,19 @@ export async function submitCoinRequest(
     console.error('[coin_request] Error:', error)
     return { success: false, error: 'Error al enviar la solicitud. Inténtalo de nuevo.' }
   }
+
+  // Await email before returning — fire-and-forget is killed by Vercel on return
+  try {
+    await sendCoinRequestEmail({
+      baristaName: barista?.name ?? 'Barista',
+      totalCoins: totalAmount,
+      items: items.map(i => ({ description: i.description, subtotal: i.subtotal })),
+      submittedAt: new Date().toISOString(),
+    })
+  } catch (notifyErr) {
+    console.error('[notify] Error enviando email de solicitud:', notifyErr)
+  }
+
   return { success: true }
 }
 
