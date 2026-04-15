@@ -197,3 +197,53 @@ export async function redeemReward(
     rewardName: reward.name,
   }
 }
+
+// ─── Proposals ───────────────────────────────────────────────────────────────
+
+export type SubmitProposalResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function submitProposal(
+  baristaId: string,
+  ideaType: 'nueva_recompensa' | 'idea_mejora' | 'otro',
+  message: string
+): Promise<SubmitProposalResult> {
+  if (!message?.trim() || message.trim().length < 10) {
+    return { success: false, error: 'El mensaje debe tener al menos 10 caracteres.' }
+  }
+
+  const supabase = createServiceClient()
+
+  const { data: barista } = await supabase
+    .from('baristas')
+    .select('name')
+    .eq('id', baristaId)
+    .single()
+
+  const { error } = await supabase.from('proposals').insert({
+    barista_id: baristaId,
+    idea_type: ideaType,
+    message: message.trim(),
+    status: 'pending',
+  })
+
+  if (error) {
+    console.error('[proposal] Error:', error)
+    return { success: false, error: 'Error al enviar la propuesta. Inténtalo de nuevo.' }
+  }
+
+  try {
+    const { sendProposalEmail } = await import('@/lib/notifications')
+    await sendProposalEmail({
+      baristaName: barista?.name ?? 'Barista',
+      ideaType,
+      message: message.trim(),
+      submittedAt: new Date().toISOString(),
+    })
+  } catch (notifyErr) {
+    console.error('[notify] Error enviando email de propuesta:', notifyErr)
+  }
+
+  return { success: true }
+}

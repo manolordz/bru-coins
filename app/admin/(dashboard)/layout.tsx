@@ -11,17 +11,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/admin/login')
   }
 
-  // Count pending coin requests for the sidebar badge
   const service = createServiceClient()
-  const { count } = await service
-    .from('coin_requests')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
+
+  // Count both pending badges in parallel
+  const [{ count: requestsCount }, { count: proposalsCount }] = await Promise.all([
+    service
+      .from('coin_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    service
+      .from('proposals')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+  ])
 
   return (
-    <div className="min-h-screen bg-bru-parchment flex">
-      <AdminSidebar pendingRequestsCount={count ?? 0} />
-      <main className="flex-1 lg:ml-0 min-w-0">
+    <div className="min-h-screen bg-bru-parchment lg:flex">
+      <AdminSidebar
+        pendingRequestsCount={requestsCount ?? 0}
+        pendingProposalsCount={proposalsCount ?? 0}
+      />
+      {/* pt-11 offsets the mobile top bar (44px); pb-[76px] offsets the mobile bottom nav (60px + safe area) */}
+      <main className="flex-1 min-w-0 pt-11 pb-[76px] lg:pt-0 lg:pb-0">
         {children}
       </main>
     </div>

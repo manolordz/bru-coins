@@ -382,3 +382,32 @@ export async function saveSettings(settings: Record<string, string>) {
   if (error) return { error: 'Error al guardar la configuración.' }
   return { success: true }
 }
+
+// ─── Proposals ───────────────────────────────────────────────────────────────
+
+export async function markProposalReviewed(proposalId: string, adminNotes?: string) {
+  const supabase = createServiceClient()
+  const updates: Record<string, unknown> = { status: 'reviewed' }
+  if (adminNotes !== undefined) updates.admin_notes = adminNotes.trim() || null
+
+  const { error } = await supabase
+    .from('proposals')
+    .update(updates)
+    .eq('id', proposalId)
+
+  if (error) return { error: 'Error al actualizar la propuesta.' }
+  revalidatePath('/admin/propuestas')
+  return { success: true }
+}
+
+export async function updateProposalNotes(proposalId: string, adminNotes: string) {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('proposals')
+    .update({ admin_notes: adminNotes.trim() || null })
+    .eq('id', proposalId)
+
+  if (error) return { error: 'Error al guardar las notas.' }
+  revalidatePath('/admin/propuestas')
+  return { success: true }
+}

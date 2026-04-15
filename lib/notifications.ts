@@ -229,3 +229,97 @@ function buildCoinRequestText(d: CoinRequestEmailData, dateStr: string): string 
     '— BRÜ Coins App',
   ].join('\n')
 }
+
+// ─── Proposal email ──────────────────────────────────────────────────────────
+
+export interface ProposalEmailData {
+  baristaName: string
+  ideaType: string
+  message: string
+  submittedAt: string
+}
+
+const IDEA_TYPE_LABELS: Record<string, string> = {
+  nueva_recompensa: 'Nueva Recompensa',
+  idea_mejora: 'Idea de Mejora',
+  otro: 'Otro Comentario',
+}
+
+export async function sendProposalEmail(data: ProposalEmailData): Promise<void> {
+  const { adminEmails, resendKey, from } = await getNotifyConfig()
+
+  if (!adminEmails.length) {
+    console.warn('[notify] Sin correos de admin — omitiendo notificación de propuesta.')
+    return
+  }
+  if (!resendKey) {
+    console.warn('[notify] Sin RESEND_API_KEY — omitiendo notificación de propuesta.')
+    return
+  }
+
+  const dateStr = new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Mexico_City',
+  }).format(new Date(data.submittedAt))
+
+  const ok = await sendEmail({
+    resendKey, from, to: adminEmails,
+    subject: `💡 Nueva propuesta de ${data.baristaName} en BRÜ Coins`,
+    html: buildProposalHtml(data, dateStr),
+    text: buildProposalText(data, dateStr),
+  })
+
+  if (ok) {
+    console.log(`[notify] ✅ Email de propuesta enviado — ${data.baristaName}`)
+  }
+}
+
+function buildProposalHtml(d: ProposalEmailData, dateStr: string): string {
+  const typeLabel = IDEA_TYPE_LABELS[d.ideaType] ?? d.ideaType
+  return `
+    <div style="font-family:${SANS};max-width:480px;margin:0 auto;background:#DFD9C7;padding:32px;border-radius:16px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:36px;">💡</div>
+        <h1 style="font-size:22px;color:#000;margin:8px 0 0;font-family:${SANS};font-weight:700;letter-spacing:-0.3px;">BRÜ Coins</h1>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:12px;">
+        <p style="font-size:15px;color:#555;margin:0 0 16px;">
+          <strong>${d.baristaName}</strong> envió una nueva propuesta:
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid #E8E2D4;color:#8C8070;vertical-align:top;">Tipo</td>
+            <td style="padding:10px 0;border-bottom:1px solid #E8E2D4;font-weight:700;text-align:right;">${typeLabel}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid #E8E2D4;color:#8C8070;vertical-align:top;">Propuesta</td>
+            <td style="padding:10px 0;border-bottom:1px solid #E8E2D4;text-align:right;line-height:1.5;">${d.message}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#8C8070;">Fecha</td>
+            <td style="padding:10px 0;text-align:right;font-size:13px;">${dateStr}</td>
+          </tr>
+        </table>
+      </div>
+      <p style="text-align:center;font-size:12px;color:#8C8070;margin:0;">
+        Revísala en Propuestas del panel de administración → BRÜ Coins App
+      </p>
+    </div>
+  `
+}
+
+function buildProposalText(d: ProposalEmailData, dateStr: string): string {
+  const typeLabel = IDEA_TYPE_LABELS[d.ideaType] ?? d.ideaType
+  return [
+    'BRÜ Coins — Nueva propuesta',
+    '',
+    `De: ${d.baristaName}`,
+    `Tipo: ${typeLabel}`,
+    `Fecha: ${dateStr}`,
+    '',
+    d.message,
+    '',
+    'Revisa en el panel de administración.',
+    '',
+    '— BRÜ Coins App',
+  ].join('\n')
+}

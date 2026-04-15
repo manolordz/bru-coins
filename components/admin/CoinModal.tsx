@@ -1,14 +1,21 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { addCoins, deductCoins } from '@/lib/actions/admin'
 import { Avatar } from '@/components/ui/Avatar'
+import { createClient } from '@/lib/supabase/client'
 
 interface Barista {
   id: string
   name: string
   avatar_url: string | null
   coin_balance: number
+}
+
+interface CoinRule {
+  id: string
+  description: string
+  amount: number
 }
 
 interface CoinModalProps {
@@ -18,62 +25,51 @@ interface CoinModalProps {
   onSuccess?: () => void
 }
 
-const EARN_SHORTCUTS = [
-  { label: 'Tarjeta de sellos', amount: 1 },
-  { label: 'Corte de caja perfecto', amount: 2 },
-  { label: 'Shoutout / mención', amount: 2 },
-  { label: 'Proponer idea útil', amount: 2 },
-  { label: 'Grano de plata', amount: 2 },
-  { label: 'Grano de oro', amount: 5 },
-  { label: '0 faltas en el mes', amount: 5 },
-  { label: 'Review positivo', amount: 5 },
-  { label: 'Puntualidad impecable', amount: 5 },
-  { label: 'Cubrir turno emergencia', amount: 10 },
-]
-
-const DEDUCT_SHORTCUTS = [
-  { label: 'No usar mandil', amount: 1 },
-  { label: 'No marcar bebidas', amount: 1 },
-  { label: 'Llegada tarde (5 min)', amount: 2 },
-  { label: 'No hacer check-in/out', amount: 2 },
-  { label: 'Olvidar órdenes', amount: 5 },
-  { label: 'No enviar checklist', amount: 5 },
-  { label: 'Falta sin avisar', amount: 10 },
-]
-
 export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps) {
-  const [amount, setAmount] = useState('')
-  const [reason, setReason] = useState('')
-  const [error, setError] = useState('')
+  const [amount, setAmount]     = useState('')
+  const [reason, setReason]     = useState('')
+  const [error, setError]       = useState('')
+  const [rules, setRules]       = useState<CoinRule[]>([])
+  const [rulesLoading, setRulesLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
-  const shortcuts = mode === 'add' ? EARN_SHORTCUTS : DEDUCT_SHORTCUTS
   const isAdd = mode === 'add'
 
-  const handleShortcut = (s: { label: string; amount: number }) => {
-    setAmount(String(s.amount))
-    setReason(s.label)
+  // Fetch dynamic coin rules on mount
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('coin_rules')
+      .select('id, description, amount')
+      .eq('type', isAdd ? 'earn' : 'deduct')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => {
+        setRules(data || [])
+        setRulesLoading(false)
+      })
+  }, [isAdd])
+
+  const handleShortcut = (rule: CoinRule) => {
+    setReason(rule.description)
+    if (rule.amount > 0) setAmount(String(rule.amount))
+    // If amount === 0, only pre-fill reason — admin enters the custom amount
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
     const amt = parseInt(amount)
     if (!amt || amt <= 0) return setError('Ingresa una cantidad válida.')
-    if (!reason.trim()) return setError('El motivo es requerido.')
+    if (!reason.trim())   return setError('El motivo es requerido.')
 
     startTransition(async () => {
       const result = isAdd
         ? await addCoins(barista.id, amt, reason)
         : await deductCoins(barista.id, amt, reason)
 
-      if (result.error) {
-        setError(result.error)
-      } else {
-        onSuccess?.()
-        onClose()
-      }
+      if (result.error) setError(result.error)
+      else { onSuccess?.(); onClose() }
     })
   }
 
@@ -92,9 +88,7 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
                 <p className="text-sm text-bru-orange">₿{barista.coin_balance} actuales</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-bru-warm-gray hover:text-bru-black text-lg">
-              ×
-            </button>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-bru-warm-gray hover:text-bru-black text-lg">×</button>
           </div>
           <h2 className={`font-display text-xl font-semibold ${isAdd ? 'text-green-700' : 'text-red-700'}`}>
             {isAdd ? '+ Agregar ₿' : '− Quitar ₿'}
@@ -106,9 +100,7 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Amount */}
             <div>
-              <label className="block text-sm font-medium text-bru-black mb-1.5">
-                Cantidad de ₿
-              </label>
+              <label className="block text-sm font-medium text-bru-black mb-1.5">Cantidad de ₿</label>
               <div className="relative">
                 <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 font-slab text-lg font-semibold select-none pointer-events-none ${isAdd ? 'text-green-600' : 'text-red-600'}`}>
                   {isAdd ? '+' : '−'}₿
@@ -125,35 +117,48 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
                 />
               </div>
               {!isAdd && amount && parseInt(amount) > barista.coin_balance && (
-                <p className="text-red-600 text-xs mt-1">
-                  Saldo insuficiente. Máximo ₿{barista.coin_balance}.
-                </p>
+                <p className="text-red-600 text-xs mt-1">Saldo insuficiente. Máximo ₿{barista.coin_balance}.</p>
               )}
             </div>
 
-            {/* Reason shortcuts */}
+            {/* Quick reason shortcuts */}
             <div>
-              <label className="block text-sm font-medium text-bru-black mb-2">
-                Motivo rápido
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {shortcuts.map((s) => (
-                  <button
-                    key={s.label}
-                    type="button"
-                    onClick={() => handleShortcut(s)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                      reason === s.label && amount === String(s.amount)
-                        ? isAdd
-                          ? 'bg-green-100 border-green-400 text-green-700 font-medium'
-                          : 'bg-red-100 border-red-400 text-red-700 font-medium'
-                        : 'bg-white border-bru-light-gray text-bru-black hover:border-bru-orange hover:text-bru-orange'
-                    }`}
-                  >
-                    {isAdd ? `+${s.amount}` : `-${s.amount}`} {s.label}
-                  </button>
-                ))}
-              </div>
+              <label className="block text-sm font-medium text-bru-black mb-2">Motivo rápido</label>
+              {rulesLoading ? (
+                <div className="flex gap-2 flex-wrap">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-7 w-28 bg-bru-light-gray rounded-full animate-pulse" />
+                  ))}
+                </div>
+              ) : rules.length === 0 ? (
+                <p className="text-xs text-bru-warm-gray italic">
+                  No hay reglas activas. Ve a Reglas de Coins para agregar.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {rules.map((rule) => {
+                    const selected = reason === rule.description && (rule.amount === 0 || amount === String(rule.amount))
+                    return (
+                      <button
+                        key={rule.id}
+                        type="button"
+                        onClick={() => handleShortcut(rule)}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                          selected
+                            ? isAdd
+                              ? 'bg-green-100 border-green-400 text-green-700 font-medium'
+                              : 'bg-red-100 border-red-400 text-red-700 font-medium'
+                            : 'bg-white border-bru-light-gray text-bru-black hover:border-bru-orange hover:text-bru-orange'
+                        }`}
+                      >
+                        {rule.amount > 0
+                          ? `${isAdd ? '+' : '−'}${rule.amount} ${rule.description}`
+                          : `${rule.description} (₿?)`}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Reason text */}
@@ -172,9 +177,7 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
             </div>
 
             {error && (
-              <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                {error}
-              </div>
+              <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
             )}
 
             <button
@@ -187,8 +190,8 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
               {isPending
                 ? 'Guardando...'
                 : isAdd
-                ? `Agregar ₿${amount || '0'} a ${barista.name}`
-                : `Quitar ₿${amount || '0'} de ${barista.name}`}
+                  ? `Agregar ₿${amount || '0'} a ${barista.name}`
+                  : `Quitar ₿${amount || '0'} de ${barista.name}`}
             </button>
           </form>
         </div>
