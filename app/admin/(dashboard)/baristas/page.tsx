@@ -93,7 +93,9 @@ export default function BaristasPage() {
               </div>
 
               <div className="text-right flex-shrink-0">
-                <p className="font-display text-xl font-bold text-bru-orange">₿{b.coin_balance}</p>
+                <p className={`font-display text-xl font-bold ${b.coin_balance < 0 ? 'text-red-600' : 'text-bru-orange'}`}>
+                  {b.coin_balance < 0 ? `-₿${Math.abs(b.coin_balance)}` : `₿${b.coin_balance}`}
+                </p>
               </div>
             </div>
 
@@ -108,7 +110,7 @@ export default function BaristasPage() {
               </button>
               <button
                 onClick={() => setCoinModal({ barista: b, mode: 'deduct' })}
-                disabled={!b.is_active || b.coin_balance === 0}
+                disabled={!b.is_active}
                 className="flex-1 text-xs font-medium py-2 px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 − Quitar ₿

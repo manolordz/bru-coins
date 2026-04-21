@@ -138,9 +138,7 @@ export async function deductCoins(baristaId: string, amount: number, reason: str
     .single()
 
   if (!barista) return { error: 'Barista no encontrado.' }
-  if (barista.coin_balance < amount) {
-    return { error: `Saldo insuficiente. ${barista.name} tiene ₿${barista.coin_balance}.` }
-  }
+  // No balance floor — negative balances are intentional (admin-applied penalties)
 
   const { error } = await supabase.rpc('deduct_coins', {
     p_barista_id: baristaId,

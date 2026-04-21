@@ -122,7 +122,9 @@ export function LeaderboardSection({ initialBaristas, initialTransactions, earnR
               <Avatar name={b.name} avatarUrl={b.avatar_url} size="sm"
                 className="!w-5 !h-5 text-[9px]" />
               <span className="font-medium text-bru-black">{b.name}</span>
-              <span className="font-display font-bold text-bru-orange">₿{b.coin_balance}</span>
+              <span className={`font-display font-bold ${b.coin_balance < 0 ? 'text-red-500' : 'text-bru-orange'}`}>
+                {b.coin_balance < 0 ? `-₿${Math.abs(b.coin_balance)}` : `₿${b.coin_balance}`}
+              </span>
             </div>
           ))}
         </div>
@@ -212,7 +214,9 @@ export function LeaderboardSection({ initialBaristas, initialTransactions, earnR
               </div>
               {/* Balance */}
               <div className="text-right flex-shrink-0">
-                <p className="font-display text-base font-bold text-bru-orange leading-tight">₿{b.coin_balance}</p>
+                <p className={`font-display text-base font-bold leading-tight ${b.coin_balance < 0 ? 'text-red-500' : 'text-bru-orange'}`}>
+                  {b.coin_balance < 0 ? `-₿${Math.abs(b.coin_balance)}` : `₿${b.coin_balance}`}
+                </p>
                 {i === 0 && <p className="text-[9px] text-yellow-600 font-medium">Líder 👑</p>}
               </div>
             </div>

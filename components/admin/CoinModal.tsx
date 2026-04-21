@@ -108,7 +108,6 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
                 <input
                   type="number"
                   min="1"
-                  max={!isAdd ? barista.coin_balance : undefined}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0"
@@ -116,9 +115,6 @@ export function CoinModal({ barista, mode, onClose, onSuccess }: CoinModalProps)
                   required
                 />
               </div>
-              {!isAdd && amount && parseInt(amount) > barista.coin_balance && (
-                <p className="text-red-600 text-xs mt-1">Saldo insuficiente. Máximo ₿{barista.coin_balance}.</p>
-              )}
             </div>
 
             {/* Quick reason shortcuts */}
